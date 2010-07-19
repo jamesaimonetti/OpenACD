@@ -133,13 +133,13 @@ determine_language([]) ->
 	"";
 determine_language([Head | Tail]) ->
 	[Lang |_Junk] = util:string_split(Head, ";"),
-	case filelib:is_regular(string:concat(string:concat("www/admin/lang/nls/", Lang), "/labels.js")) of
+	case filelib:is_regular(string:concat(string:concat("priv/www/admin/lang/nls/", Lang), "/labels.js")) of
 		true ->
 			Lang;
 		false ->
 			% try the "super language" (eg en vs en-us) in case it's not in the list itself
 			[SuperLang | _SubLang] = util:string_split(Lang, "-"),
-			case filelib:is_regular(string:concat(string:concat("www/admin/lang/nls/", SuperLang), "/labels.js")) of
+			case filelib:is_regular(string:concat(string:concat("priv/www/admin/lang/nls/", SuperLang), "/labels.js")) of
 				true ->
 					SuperLang;
 				false ->
@@ -782,7 +782,7 @@ api({medias, Node, "cpx_monitor_grapher", "get"}, ?COOKIE, _Post) ->
 			Imagepath = case Protoimagepath of
 				Rrdpath ->
 					<<"rrd path">>;
-				<<"../www/dynamic">> ->
+				<<"../priv/www/dynamic">> -> % TODO the dynamic folder needs to be outside the source tree
 					<<"Dynamic Files">>;
 				Else ->
 					Else
@@ -807,7 +807,7 @@ api({medias, Node, "cpx_monitor_grapher", "update"}, ?COOKIE, Post) ->
 				"rrd path" ->
 					Rrdpath;
 				"Dynamic Files" ->
-					"../www/dynamic";
+					"../priv/www/dynamic";
 				Otherpath ->
 					Otherpath
 			end,
@@ -848,7 +848,7 @@ api({medias, Node, "cpx_monitor_passive", "update"}, ?COOKIE, Post) ->
 			Convert = fun({struct, Props}) ->
 				Fileout = case proplists:get_value(<<"outputdir">>, Props) of
 					<<"dynamic">> ->
-						"www/dynamic";
+						"priv/www/dynamic";
 					Else ->
 						binary_to_list(Else)
 				end,
@@ -1505,7 +1505,7 @@ api(_, _, _) ->
 parse_path(Path) ->
 	case Path of
 		"/" ->
-			{file, {"index.html", "www/admin/"}};
+			{file, {"index.html", "priv/www/admin/"}};
 		"/getsalt" ->
 			{api, getsalt};
 		"/login" ->
@@ -1519,9 +1519,9 @@ parse_path(Path) ->
 			case util:string_split(Path, "/") of
 				["", "dynamic" | Tail] ->
 					File = string:join(Tail, "/"),
-					case filelib:is_regular(string:concat("www/dynamic/", File)) of
+					case filelib:is_regular(string:concat("priv/www/dynamic/", File)) of
 						true ->
-							{file, {File, "www/dynamic"}};
+							{file, {File, "priv/www/dynamic"}};
 						false ->
 							{api, {undefined, Path}}
 					end;
@@ -1564,13 +1564,13 @@ parse_path(Path) ->
 				["", "clients", Client, Action] ->
 					{api, {clients, Client, Action}};
 				Allothers ->
-					Adminpath = string:concat("www/admin", Path),
-					Contribpath = string:concat("www/contrib", Path),
+					Adminpath = string:concat("priv/www/admin", Path),
+					Contribpath = string:concat("priv/www/contrib", Path),
 					case {filelib:is_regular(Adminpath), filelib:is_regular(Contribpath)} of
 						{true, _} ->
-							{file, {string:strip(Path, left, $/), "www/admin/"}};
+							{file, {string:strip(Path, left, $/), "priv/www/admin/"}};
 						{false, true} ->
-							{file, {string:strip(Path, left, $/), "www/contrib/"}};
+							{file, {string:strip(Path, left, $/), "priv/www/contrib/"}};
 						{false, false} ->
 							{api, Allothers}
 					end

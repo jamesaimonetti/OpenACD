@@ -99,7 +99,7 @@ load_loop(Key, Detsref, Acc) ->
 init(Opts) ->
 	Logdir = case proplists:get_value(logdir, Opts, dynamic) of
 		dynamic ->
-			"www/dynamic/";
+			"priv/www/dynamic/";
 		tmp ->
 			"/tmp/";
 		LogElse ->

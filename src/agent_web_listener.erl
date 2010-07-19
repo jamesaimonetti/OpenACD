@@ -269,13 +269,13 @@ determine_language([]) ->
 determine_language(String) ->
 	[Head | Other] = util:string_split(String, ",", 2),
 	[Lang |_Junk] = util:string_split(Head, ";"),
-	case filelib:is_regular(string:concat(string:concat("www/agent/application/nls/", Lang), "/labels.js")) of
+	case filelib:is_regular(string:concat(string:concat("priv/www/agent/application/nls/", Lang), "/labels.js")) of
 		true ->
 			Lang;
 		false ->
 			% try the "super language" (eg en vs en-us) in case it's not in the list itself
 			[SuperLang | _SubLang] = util:string_split(Lang, "-"),
-			case filelib:is_regular(string:concat(string:concat("www/agent/application/nls/", SuperLang), "/labels.js")) of
+			case filelib:is_regular(string:concat(string:concat("priv/www/agent/application/nls/", SuperLang), "/labels.js")) of
 				true ->
 					SuperLang;
 				false ->
@@ -537,7 +537,7 @@ parse_path(Path) ->
 	%?DEBUG("Path:  ~s", [Path]),
 	case Path of
 		"/" ->
-			{file, {"index.html", "www/agent/"}};
+			{file, {"index.html", "priv/www/agent/"}};
 		"/poll" ->
 			{api, poll};
 		"/logout" ->
@@ -559,9 +559,9 @@ parse_path(Path) ->
 			case Tail of 
 				["dynamic" | Moretail] ->
 					File = string:join(Moretail, "/"),
-					case filelib:is_regular(string:concat("www/dynamic/", File)) of
+					case filelib:is_regular(string:concat("priv/www/dynamic/", File)) of
 						true ->
-							{file, {File, "www/dynamic"}};
+							{file, {File, "priv/www/dynamic"}};
 						false ->
 							{api, {undefined, Path}}
 					end;
@@ -607,13 +607,13 @@ parse_path(Path) ->
 					{api, {supervisor, Supertail}};
 				_Allother ->
 					% is there an actual file to serve?
-					case {filelib:is_regular(string:concat("www/agent", Path)), filelib:is_regular(string:concat("www/contrib", Path))} of
+					case {filelib:is_regular(string:concat("priv/www/agent", Path)), filelib:is_regular(string:concat("priv/www/contrib", Path))} of
 						{true, false} ->
-							{file, {string:strip(Path, left, $/), "www/agent/"}};
+							{file, {string:strip(Path, left, $/), "priv/www/agent/"}};
 						{false, true} ->
-							{file, {string:strip(Path, left, $/), "www/contrib/"}};
+							{file, {string:strip(Path, left, $/), "priv/www/contrib/"}};
 						{true, true} ->
-							{file, {string:strip(Path, left, $/), "www/contrib/"}};
+							{file, {string:strip(Path, left, $/), "priv/www/contrib/"}};
 						{false, false} ->
 							{api, {undefined, Path}}
 					end
@@ -859,7 +859,7 @@ web_connection_login_test_() ->
 % TODO add tests for interaction w/ agent, agent_manager
 
 -define(PATH_TEST_SET, [
-		{"/", {file, {"index.html", "www/agent/"}}},
+		{"/", {file, {"index.html", "priv/www/agent/"}}},
 		{"/poll", {api, poll}},
 		{"/logout", {api, logout}},
 		{"/login", {api, login}},
@@ -869,7 +869,7 @@ web_connection_login_test_() ->
 		{"/ack/7", {api, {ack, "7"}}},
 		{"/err/89", {api, {err, "89"}}},
 		{"/err/74/testmessage", {api, {err, "74", "testmessage"}}},
-		{"/index.html", {file, {"index.html", "www/agent/"}}},
+		{"/index.html", {file, {"index.html", "priv/www/agent/"}}},
 		{"/otherfile.ext", {api, {undefined, "/otherfile.ext"}}},
 		{"/other/path", {api, {undefined, "/other/path"}}},
 		{"/releaseopts", {api, releaseopts}},
@@ -881,7 +881,7 @@ web_connection_login_test_() ->
 		{"/agent_transfer/agent@domain", {api, {agent_transfer, "agent@domain"}}},
 		{"/agent_transfer/agent@domain/1234", {api, {agent_transfer, "agent@domain", "1234"}}},
 		{"/mediapush", {api, mediapush}},
-		{"/dynamic/test.html", {file, {"test.html", "www/dynamic"}}}
+		{"/dynamic/test.html", {file, {"test.html", "priv/www/dynamic"}}}
 	]
 ).
 

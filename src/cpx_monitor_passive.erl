@@ -903,7 +903,7 @@ write_output(Interval, _QueueCache, _AgentCache) ->
 		{<<"rawData">>, Raws},
 		{<<"ivrAlerts">>, get_ivr_alerts()}
 	]},
-	{ok, File} = file:open("www/dynamic/all.json", [write, binary]),
+	{ok, File} = file:open("priv/www/dynamic/all.json", [write, binary]),
 	file:write(File, mochijson2:encode(Json)).
 	
 get_clients_json() ->
