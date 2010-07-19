@@ -31,7 +31,7 @@
 
 -behaviour(gen_server).
 
--include("contrib/errd/include/errd.hrl").
+-include("deps/errd/include/errd.hrl").
 
 -include("log.hrl").
 %% API
