@@ -51,7 +51,12 @@
 		sip_bot,
 		sip_bot_manager,
 		spicecsm_integration,
-		util
+		util,
+		
+		%% contrib files
+		freeswitch,
+		trunc_io,
+		nodefindersrv
 	]},
 	{registered, [
 		agent_connection_sup,
