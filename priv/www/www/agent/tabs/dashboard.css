@@ -1,0 +1,30 @@
+.dashboard td[purpose="name"] {
+	cursor: pointer
+}
+
+table.dashboard {
+	width:100%;
+	border: none;
+}
+
+/*.dashboard td, .dashboard th {
+	border: black outset 2px;
+	text-align: center;
+}*/
+
+td[purpose="state"] {
+	background-repeat:no-repeat;
+	background-position:center
+}
+
+.dashboard tr:nth-child(odd)    { background-color:#eee; }
+.dashboard tr:nth-child(even)    { background-color:#fff; }
+.dashboard tr[expanded="true"] {
+	background-color: #9ff;
+}
+
+.subData {
+	margin-left:1em;
+	width:calc(100% - 3em);
+}
+

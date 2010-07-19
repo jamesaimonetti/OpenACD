@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>OpenACD Management</title>
+		<link rel="stylesheet" href="/dojo/dijit/themes/tundra/tundra.css">
+		<style type="text/css">
+			@import "/dojo/dijit/themes/tundra/tundra.css";
+		</style>
+		<script type="text/javascript">
+		var djConfig = {
+			parseOnLoad:true,
+			isDebug:true,
+			locale:'en-US',
+			modulePaths:{
+				"admin":"/lang"
+			}
+		}
+		</script>
+		<script type="text/javascript" src="/dojo/dojo/dojo.js"></script>
+		<script>
+		
+inArray = function(needle, haystack){
+	for(var i = 0; i < haystack.length; i++){
+		if(haystack[i] == needle){
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+skills = function(){
+	return {};
+};
+
+skills.createSelect = function(callback, selected, hidden, expand){
+	//var selectNode = document.createElement('select');
+	//selectNode.multiple = 'true';
+	var selectNode = dojo.create('select', {'multiple':true,
+		'innerHTML':'<optgroup label="group1">' +
+			'<option value="skill1">Skill 1</option>' +
+			'<option value="skill2">Skill 2</option>' +
+			'<option value="_magic">Magic</option>' +
+		'</optgroup>' +
+		'<optgroup label="_magic">' +
+			'<option value="{_magic,magicone}">Magic 1</option>' +
+			'<option value="{_magic,magictwo}">Magic 2</option>' +
+		'</optgroup>'});
+	
+	selectNode.getValues = function(){
+		var nodelist = dojo.query('> optgroup > option', selectNode);
+		var out = [];
+		for(var i =0; i < nodelist.length; i++){
+			if(nodelist[i].selected){
+				out.push(nodelist[i].value);
+			}
+		}
+		return out;
+	};
+	
+	var options = dojo.query('> optgroup > option', selectNode);
+	for(var i = 0; i < options.length; i++){
+		var val = options[i].value;
+		if(inArray(val, selected)){
+			options[i].selected = true;
+		}
+	}
+	
+	callback(selectNode);
+};
+
+dojo.registerModulePath("openacd", "../../openacd");
+dojo.registerModulePath("openacd.PredicateEditor", "../../openacd/PredicateEditor");
+dojo.registerModulePath("openacd.RecipeEditor", "../../openacd/RecipeEditor");
+dojo.require("openacd.PredicateEditor");
+dojo.require("openacd.RecipeEditor");
+
+/*
+dojo.addOnLoad(function(){
+	dijit.byId('r').setValue([
+		{actions:[
+			{'action':'add_skills',
+			'arguments':['_magic']}
+		],
+		conditions:[
+			{property:'ticks',
+			comparison:'=',
+			value:15}
+		],
+		comment:'ouch',
+		runs:'run_many'}
+	]);
+});
+*/
+
+
+		</script>
+	</head>
+	<body class="tundra">
+		<div dojoType="RecipeEditor" id="r"></div>
+	</body>
+</html>

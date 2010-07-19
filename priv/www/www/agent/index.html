@@ -1,0 +1,697 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Agent UI</title>
+<style type="text/css">
+  @import "/dojo/dijit/themes/soria/soria.css";
+  @import "/dojo/dijit/themes/tundra/tundra.css";
+  @import "/dojo/dijit/themes/nihilo/nihilo.css";
+  @import "/dojo/dojox/form/resources/FileUploader.css";
+  .statusdisplay {
+		padding-left:0.5em;
+  }
+  
+  label{
+        width: 10em;
+        float: left;
+        text-align:right;
+        margin-right:0.1em;
+        display:block;
+        font-weight:bold;
+        clear:both;
+	}
+	#loginpane .dijitDialogCloseIcon{
+		display: none;
+	}
+
+
+	.label{
+		text-align:right;
+		margin-right:0.1em;
+		font-weight:bold;
+	}
+	
+	label.narrow{
+		width: 5em;
+	}
+	
+	p label.narrow{
+		width: 7em;
+	}
+	
+	.smaller{
+		font-size:smaller;
+	}
+	
+	#emailView th{
+		text-align:right;
+		vertical-align:top;
+	}
+	
+	#emailRawHeadersSpan p{
+		font-family:monospace;
+		padding:0 0 0 0;
+		margin:0 0 0 2em;
+		text-indent: -2em;
+	}
+	
+	.rightFloater{
+		display:inline-block;
+		float:right;
+		position:relative;
+		z-index:100;
+	}
+	
+	.cpxIconBug {
+		background-image: url('/images/bug.png');
+		background-repeat: no-repeat;
+		height: 18px;
+		text-align: center;
+		width: 18px;
+	}
+	
+	.softText {
+		font-size: smaller;
+		font-style: italic;
+		color:gray;
+	}
+	
+	.profit {
+		color:green;
+	}
+	
+	.loss {
+		color:red;
+	}
+	
+	html, body, #containerDiv {
+		width: 99.9%;
+		height: 99.9%;
+		border: 0; 
+		padding: 0; 
+		margin: 0;
+	}
+</style>
+<link rel="stylesheet" href="/dojo/dojox/layout/resources/FloatingPane.css" />	
+<link rel="stylesheet" href="/dojo/dojox/layout/resources/ResizeHandle.css" />
+<link rel="stylesheet" href="/application/css/email.css" />
+<script type="text/javascript">
+	/* this is lame, why do cookies suck in JS? */
+	var cookies = document.cookie.split('; ');
+	var locale = "";
+	for(var i = 0; i < cookies.length; i++) {
+		var stuff = cookies[i].split("=");
+		if (stuff[0] == "cpx_lang") {
+			locale = stuff[1];
+		}
+	}
+	var djConfig = {
+		modulePaths: {agentUI: "/application"},
+		parseOnLoad: true,
+		isDebug: false,
+		locale: locale
+	};
+
+
+</script>
+
+<!-- Javascript RSA encryption support -->
+<script language="JavaScript" type="text/javascript" src="jsbn/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rsa.js"></script>
+
+<!-- SoundManager2 -->
+<!--<script type="text/javascript" src="SoundManager2/soundmanager2.js"></script>-->
+<script type="text/javascript" src="SoundManager2/soundmanager2-nodebug-jsmin.js"></script>
+
+<script type="text/javascript" src="/dojo/dojo/dojo.js"></script>
+<script type="text/javascript">
+	dojo.require("dijit.layout.BorderContainer");
+	dojo.require("dijit.layout.ContentPane");
+	dojo.require("dijit.layout.TabContainer");
+	dojo.require("dijit.form.SimpleTextarea");
+	dojo.require("dijit.form.Button");
+	dojo.require("dijit.form.Form");
+	dojo.require("dijit.form.CheckBox");
+	dojo.require("dijit.form.FilteringSelect");
+	dojo.require("dijit.Dialog");
+	dojo.require("dojox.encoding.digests.MD5");
+	dojo.require("dijit.form.ComboBox");
+	dojo.require("dojox.layout.ContentPane");
+	dojo.require("dojox.layout.FloatingPane");
+	dojo.require("dojo.cookie");
+	dojo.require("dojo.data.ItemFileReadStore");
+	dojo.require("dijit.Editor");
+	dojo.require("dojox.widget.Standby");
+	//dojo.require("dijit.Menu");
+	dojo.require("agentUI.logLib");
+	dojo.require("agentUI.util");
+	dojo.requireLocalization("agentUI", "labels");
+	function init() {
+		if (dojo.config.locale == "") {
+			dojo.byId("loginerrp").style.display = "block";
+			dojo.byId("loginerrspan").innerHTML="No translation for any locales<br/>matching your request, sorry.";
+		}
+		if(dojo.cookie('agentui-settings')) {
+			var settings = dojo.fromJson(dojo.cookie('agentui-settings'));
+			dijit.byId('username').attr('value', settings.username);
+			dijit.byId('voipendpoint').attr('value', settings.voipendpoint);
+			dijit.byId('voipendpointdata').attr('value', settings.voipendpointdata);
+			dijit.byId('useoutbandring').attr('checked', settings.useoutbandring);
+			if (settings.theme)
+				document.getElementsByTagName("body")[0].className = settings.theme;
+		}
+	} /* end of init() */
+
+	if(dojo.cookie("agentui-log")){
+		window.setLogLevel(dojo.cookie("agentui-log"));
+	}
+	dojo.addOnLoad(init);
+	soundManager.url = '/SoundManager2/';
+
+	soundManager.onready(function(oStatus) {
+		if (!oStatus.success) {
+			return false;
+		}
+
+		soundManager.createSound({
+			id: 'gong',
+			url: '/SoundManager2/59239__info_in_tune.nl__gong.mp3',
+			volume: 25
+		});
+		soundManager.createSound({
+			id: 'chime',
+			url: '/SoundManager2/36365__matiasromero__clareira_sininho.mp3',
+			volume: 25
+		});
+	});
+</script>
+
+<script type="text/javascript" src="/eventLog.js"></script>
+<script type="text/javascript" src="/Stopwatch.js"></script>
+<script type="text/javascript" src="/Agent.js"></script>
+
+<script type="text/javascript" src="/main.js"></script>
+</head>
+<body class="nihilo">
+
+<div dojoType="dijit.Dialog" title="Login" id="loginpane" style="display:none">
+	<script type="dojo/connect" event="onShow">
+		this.attr("title", dojo.i18n.getLocalization("agentUI", "labels").LOGIN);
+		setTimeout(function(){
+			if(dijit.byId('username').attr('value') !== ''){
+				dijit.byId('password').domNode.focus();
+			}
+		}, 250);
+	</script>
+
+	<div dojoType="dijit.form.Form" id="loginform" jsId="loginform" action="/login" method="post">
+		<p id="loginerrp" style="font-size:smaller;display:none;text-align:center">
+			<span id="loginerrspan" style="color:#ff0000">&nbsp;</span>
+		</p>
+		<p>
+			<label for="username" id="usernamelabel">
+				<script type="text/javascript">
+					dojo.byId("usernamelabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").USERNAME + ":";
+				</script>
+			</label>
+			<input type="text" name="username" value="" dojoType="dijit.form.TextBox" trim="true" id="username" />
+		</p>
+		<p>
+			<label for="password" id="passwordlabel">
+				<script type="text/javascript">
+					dojo.byId("passwordlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").PASSWORD + ":";
+				</script>
+			</label>
+			<input type="password" name="password" value="" dojoType="dijit.form.TextBox" id="password" />
+		</p>
+		<p>
+			<label for="voipendpoint" id="voipendpointlabel">
+				<script type="text/javascript">
+					dojo.byId("voipendpointlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").VOIPENDPOINT + ":";
+				</script>
+			</label>
+			<select dojoType="dijit.form.FilteringSelect" value="SIP Registration" id="voipendpoint" name="voipendpoint">
+				<script type="dojo/method" event="onChange">
+					//endpointselect()
+				</script>
+				<option value="SIP Registration" selected="selected">SIP Registration</option>
+				<option value="SIP URI">SIP URI</option>
+				<option value="IAX2 URI">IAX2 URI</option>
+				<option value="H323 URI">H323 URI</option>
+				<option value="PSTN Number">PSTN Number</option>
+			</select>
+		</p>
+		<p>
+			<label for="voipendpointdata" id="voipendpointdatalabel">
+				<script type="text/javascript">
+					dojo.byId("voipendpointdatalabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").VOIPENDPOINTDATA + ":";
+				</script>
+			</label>
+			<input type="text" name="voipendpointdata" value="" dojoType="dijit.form.TextBox" trim="true" id="voipendpointdata" />
+			<div dojoType="dijit.Tooltip" connectId="voipendpointdata" label="UNTRANSLATED" id="voipendpointdatahint">
+				<script type="dojo/method" event="postCreate">
+					this.inherited("postCreate", arguments);
+					endpointselect();
+				</script>
+			</div>
+		</p>
+		<p>
+			<label>&nbsp;</label>
+			<input type="checkbox" name="useoutbandring" id="useoutbandring" value="useoutbandring" dojoType="dijit.form.CheckBox" checked />
+			<span class="translate" id="useoutbandringlabel">USE_OUTBAND_RING</span>
+			<script type="text/javascript">
+				dojo.byId("useoutbandringlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").USE_OUTBAND_RING;
+			</script>
+			<div dojoType="dijit.Tooltip" connectId="useoutbandring" label="OUTBAND_RING_TIP" id="outbandringtip">
+				<script type="dojo/method" event="postCreate">
+					this.inherited("postCreate", arguments);
+					this.attr('label', dojo.i18n.getLocalization('agentUI', 'labels').OUTBAND_RING_TIP);
+					
+				</script>
+			</div>
+		</p>
+		<p>
+			<label for="loginsubmit">&nbsp;</label>
+			<button dojoType="dijit.form.Button" id="loginsubmit" type="submit">
+				<script type="dojo/method" event="postCreate">
+					this.inherited("postCreate", arguments);
+					this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").LOGIN);
+				</script>
+			</button>
+		</p>
+	</div>
+</div>
+
+<div dojoType="dijit.Dialog" title="Enter Case ID" id="getCaseIDDialog" style="display:none">
+	Please enter the Case ID for this call, if any<br/>(you can leave it blank if its already been set, too).<br/>
+	<input type="text" value="" dojoType="dijit.form.ValidationTextBox" regExp="[\d]*" invalidMessage="Invalid case ID" id="caseid" /><br/>
+	<input type="submit" dojoType="dijit.form.Button" label="Submit" />
+</div>
+
+<div dojoType="dijit.Dialog" title="Report Issue" id="reportIssueDialog" style="display:none">
+	<div dojoType="dijit.form.Form" id="reportIssueForm" action="/report_issue" method="post">
+		<script type="dojo/connect" event="onSubmit">
+			arguments[0].preventDefault();
+		</script>
+		
+		<p class="softText">The user agent (browser) will automatically be sent as well as your login name.</p>
+
+		<p>
+			<label for="reportIssueSummary" class="translatecol">SUMMARY</label>
+			<input type="text" name="reportIssueSummary" dojoType="dijit.form.TextBox" trim="true" id="reportIssueSummary" />
+		</p>
+		
+		<p>
+			<label for="reportIssueError" class="translatecol">ERRMESSAGE</label>
+			<textarea dojoType="dijit.form.SimpleTextarea" id="reportIssueError" name="reportIssueError" class="softText" cols="40">The error message, or expected behavior</textarea>
+		</p>
+		
+		<p>
+			<label for="reportIssueReproduce" class="translatecol">HOWTOCAUSE</label>
+			<textarea dojoType="dijit.form.SimpleTextarea" id="reportIssueReproduce" name="reportIssueReproduce" cols="40" rows="10" class="softText">The specific steps needed to reproduce the problem</textarea>
+		</p>
+
+		<p>
+			<label for="reportIssueOther" class="translatecol">DETAILS</label>
+			<textarea dojoType="dijit.form.SimpleTextarea" id="reportIssueDetails" name="reportIssueDetails" cols="40" rows="10" class="softText">Any Additional information you feel is important.</textarea>
+		</p>
+				
+		<p>
+			<label for="reportIssueSubmit">&nbsp;</label>
+			<button dojoType="dijit.form.Button" id="reportIssueSubmit" type="submit">
+				<script type="dojo/method" event="postCreate">
+					this.inherited("postCreate", arguments);
+					this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").SUBMIT);
+					var inputs = {
+						"reportIssueSummary":"Summarize the error", 
+						"reportIssueError":"The error message, or expected behavior", 
+						"reportIssueReproduce":"The specific steps needed to reproduce the problem",
+						"reportIssueDetails":"Any Additional information you feel is important."
+					};
+					dijit.byId('reportIssueDialog').inputs = inputs;
+					for(var i in inputs){
+						dojo.connect(dijit.byId(i), 'onFocus', dijit.byId(i), function(){
+							if(dojo.hasClass(this.domNode, 'softText')){
+								dojo.removeClass(this.domNode, 'softText');
+								this.attr('value', '');
+							}
+						});
+						dojo.connect(dijit.byId(i), 'onBlur', dijit.byId(i), function(){
+							if(this.attr('value') == ''){
+								this.attr('value', inputs[this.id]);
+								dojo.addClass(this.domNode, 'softText');
+							}
+						});
+					}
+				</script>
+				<script type="dojo/method" event="onClick">
+					var inputs = dijit.byId('reportIssueDialog').inputs;
+					for(var i in inputs){
+						var dij = dijit.byId(i);
+						if(dojo.hasClass(dij.domNode, 'softText') || (dij.attr('value') == '')){
+							errMessage("There are no optional fields");
+							return false;
+						}
+					}
+					
+					reportIssue(dijit.byId('reportIssueDialog').attr('value'));
+				</script>
+			</button>
+		</p>
+	</div>
+</div>
+
+<div id="containerDiv">
+<div dojoType="dijit.layout.BorderContainer" style="width:100%; height:100%; border: 1px solid #ccc;visibility:hidden" id="main">
+	<div dojoType="dijit.layout.ContentPane" region="top" id="menubar">
+		<span style="float:right">
+			<span id="timerdisp">Time</span>
+			<span class="statusdisplay" id="profiledisp">Profile:Goober</span>
+			<span class="statusdisplay" id="statedisp">State:denial</span>
+		</span>
+
+		<div dojoType="dijit.form.DropDownButton" id="filemenubutton">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").FILE);
+			</script>
+			<span>FILE</span>
+			<div dojoType="dijit.Menu" id="Filemenu">
+				<div dojoType="dijit.MenuItem" label="RINGTEST" id="miRingtest">
+					<script type="dojo/connect" event="onClick">
+						dojo.xhrGet({
+							url: "/ringtest",
+							handleAs:"json",
+							load:function(res){
+								if (!res.success && res.message)
+									errMessage(res.message);
+								return true;
+							},
+							error:function(res){
+								warning(["call_hangup erred", res]);
+							}
+						});
+					</script>
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").RINGTEST);
+					</script>
+				</div>
+				<div dojoType="dijit.MenuItem" label="HANGUP" id="miHangup" onclick=agent.setState("wrapup");>
+					<script type="dojo/connect" event="onClick">
+						if(this.brutal_kill){
+							dojo.xhrGet({
+								url: "/call_hangup",
+								handleAs:"json",
+								load:function(res){
+									if (!res.success && res.message)
+										errMessage(res.message);
+									return true;
+								},
+								error:function(res){
+									warning(["call_hangup erred", res]);
+								}
+							});
+						} else {
+							agent.setState("wrapup");
+						}
+					</script>
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").HANGUP);
+					</script>
+				</div>
+				<div dojoType="dijit.MenuItem" label="LOGOUT" id="miLogout" onclick=logout(agent);>
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").LOGOUT);
+					</script>
+				</div>
+			</div>
+		</div>
+		<div dojoType="dijit.form.DropDownButton" id="editmenubutton">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").EDIT);
+			</script>
+			<span>EDIT</span>
+			<div dojoType="dijit.Menu" id="Editmenu">
+				<div dojoType="dijit.MenuItem" label="CONFIG" onclick="alert('NYI');">
+					<script type="dojo/method" event="postCreate">
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").CONFIG);
+					</script>
+				</div>
+			</div>
+		</div>
+		<div dojoType="dijit.form.DropDownButton" id="viewmenubutton">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").VIEW);
+			</script>
+			<span>VIEW</span>
+			<div dojoType="dijit.Menu" id="Viewmenu">
+				<div dojoType="dijit.MenuItem" label="000" onclick="setTheme('tundra');window.location.reload();">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						if (getTheme() == "tundra" || getTheme() == undefined) {
+							this.attr('label', "* tundra");
+						} else {
+							this.attr('label', "  tundra");
+						}
+					</script>
+				</div>
+				<div dojoType="dijit.MenuItem" label="000" onclick="setTheme('nihilo');window.location.reload();">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						if (getTheme() == "nihilo") {
+							this.attr('label', "* nihilo");
+						} else {
+						this.attr('label', "  nihilo");
+						}
+					</script>
+				</div>
+				<div dojoType="dijit.MenuItem" label="000" onclick="setTheme('soria');window.location.reload();">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						if (getTheme() == "soria") {
+							this.attr('label', "* soria");
+						} else {
+							this.attr('label', "  soria");
+						}
+					</script>
+				</div>
+			</div>
+		</div>
+		<div dojoType="dijit.form.DropDownButton" id="tabsmenubutton">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").TABS);
+			</script>
+			<span>TABS</span>
+			<div dojoType="dijit.Menu" id="Tabsmenu">
+				<div dojoType="dijit.PopupMenuItem">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").LOADTAB);
+					</script>
+					<span>LOADTAB</span>
+					<div dojoType="dijit.Menu">
+						<div dojoType="dijit.MenuItem">Supervisor
+							<script type="dojo/connect" event="onClick">
+								loadTab('supervisorTab');
+							</script>
+						</div>
+						<div dojoType="dijit.MenuItem">Dashboard
+							<script type="dojo/connect" event="onClick">
+								loadTab('dashboardTab');
+							</script>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div dojoType="dijit.layout.TabContainer" region="center" id="tabPanel">
+		<div dojoType="dijit.layout.ContentPane" title="MAIN" id="maintab">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.title = dojo.i18n.getLocalization("agentUI", "labels").MAIN;
+			</script>
+			<p id="agentnamep"><label for="agentname" id="agentlabel" class="narrow">
+				<script type="text/javascript">
+					dojo.byId("agentlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").AGENT;
+				</script>
+			</label><span id="agentname"></span></p>
+			<p id="agentstatep"><label for="state" id="statelabel" class="narrow">
+				<script type="text/javascript">
+					dojo.byId("statelabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").STATE;
+				</script>
+			</label><span id="state">Login needed</span></p>
+			<p id="agentbrandp" style="display:none"><label for="brand" id="brandlabel" class="narrow">
+				<script type="text/javascript">
+					dojo.byId("brandlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").BRAND;
+				</script>
+			</label><span id="brand"></span></p>
+			<p id="calleridp" style="display:none"><label for="callerid" id="calleridlabel" class="narrow">
+				<script type="text/javascript">
+					dojo.byId("calleridlabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").CALLERID;
+				</script>
+			</label><span id="callerid"></span></p>
+			<p id="calltypep" style="display:none"><label for="calltype" id="calltypelabel" class="narrow">
+				<script type="text/javascript">
+					dojo.byId("calltypelabel").innerHTML = dojo.i18n.getLocalization("agentUI", "labels").MEDIATYPE;
+				</script>
+			</label><span id="calltype"></span></p>
+		</div>
+		<!--<div dojoType="dijit.layout.ContentPane" title="Agents" id="agentstab">Tab 2</div>
+		<div dojoType="dijit.layout.ContentPane" title="Queues" id="queuestab">Tab 2</div>-->
+		<div dojoType="dijit.layout.ContentPane" title="EVENTLOG" id="eventLog">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.title = dojo.i18n.getLocalization("agentUI", "labels").EVENTLOG;
+			</script>
+			<ul id="eventLogText" style="list-style-type:none;"></ul>
+		</div>
+		
+	</div>
+	
+	<div dojoType = "dijit.layout.ContentPane" region="bottom" style="text-align:center">
+		<button dojoType="dijit.form.Button" id="bgoavail" onclick=agent.setState("idle")>
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").GOAVAILABLE);
+			</script>
+		</button>
+		<div dojoType="dijit.form.DropDownButton" id="bgoreleased" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").GORELEASED);
+			</script>
+			<span>GORELEASED</span>
+			<div dojoType="dijit.Menu" id="releasedmenu">
+			</div>
+		</div>
+
+		<select id="boutboundcall"></select>
+
+		<!--<div dojoType="dijit.form.DropDownButton" id="boutboundcall" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").MKOUTBOUND);
+			</script>
+			<span>MKOUTBOUND</span>
+			<div dojoType="dijit.Menu" id="outboundmenu">
+			</div>
+		</div>-->
+
+		<div dojoType="dijit.form.DropDownButton" id="btransfer" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").TRANSFERTOMENU);
+			</script>
+			<span>TRANSFERTOMENU</span>
+			<div dojoType="dijit.Menu" id="transfertomenu">
+				<div dojoType="dijit.PopupMenuItem" id="transferToAgentMenu">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").AGENT);
+					</script>
+					<script type="dojo/connect" event="onMouseEnter">
+						Agent.getAvailAgents();
+					</script>
+					<span>AGENT</span>
+					<div dojoType="dijit.Menu" id="transferToAgentMenuDyn">
+					</div>
+				</div>
+				<div dojoType="dijit.PopupMenuItem">
+					<script type="dojo/method" event="postCreate">
+						this.inherited("postCreate", arguments);
+						this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").QUEUE);
+					</script>
+					<span>QUEUE</span>
+					<div dojoType="dijit.Menu" id="transferToQueueMenu">
+					</div>
+				</div>
+				<div dojoType="dijit.MenuItem" label="Transfer to 3rd Party">
+					<script type="dojo/connect" event="onClick">
+					//onclick="Agent.warmtransfer('2440131');">
+						dojo.byId('foo').style.display = 'inline';
+						dijit.byId('wtcancel').attr('style', 'display:inline');
+						dijit.byId('wtdial').attr('style', 'display:inline');
+						dijit.byId('btransfer').attr('style', 'display:none');
+					</script>
+				</div>
+			</div>
+		</div>
+
+		<div id="foo" style="clear:both;"><input type="text" value="" dojoType="dijit.form.ValidationTextBox" regExp="[\d]+" invalidMessage="Invalid number - no spaces, parentheses or dashes" id="dialbox" /></div>
+		<button dojoType="dijit.form.Button" id="wtdial" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").DIAL);
+			</script>
+			<script type="dojo/connect" event="onClick">
+				dijit.byId('wtcancel').suppressHide = true;
+				Agent.warmtransfer(dijit.byId('dialbox').attr('value'));
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="wtcomplete" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").COMPLETE);
+			</script>
+			<script type="dojo/connect" event="onClick">
+				Agent.warmtransfercomplete();
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="wtcancel" style="display:none">
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").CANCEL);
+			</script>
+			<script type="dojo/connect" event="onClick">
+				dojo.byId('foo').style.display = 'none';
+				dijit.byId('wtcancel').attr('style', 'display:none');
+				dijit.byId('wtcomplete').attr('style', 'display:none');
+				dijit.byId('wtdial').attr('style', 'display:none');
+				dijit.byId('btransfer').attr('style', 'display:inline');
+				Agent.warmtransfercancel();
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="bdial" style="display:none" onclick=agent.dial()>
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").DIAL);
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="bcancel" style="display:none" onclick=agent.setState("idle")>
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").CANCEL);
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="banswer" style="display:none" onclick=agent.setState("oncall")>
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").ANSWER);
+			</script>
+		</button>
+		<button dojoType="dijit.form.Button" id="bhangup" style="display:none" onclick=agent.setState("wrapup")>
+			<script type="dojo/method" event="postCreate">
+				this.inherited("postCreate", arguments);
+				this.attr('label', dojo.i18n.getLocalization("agentUI", "labels").HANGUP);
+			</script>
+		</button>
+	</div>
+
+	<div dojoType="dojox.layout.Dock" id="rightDock" region="right">
+	
+	</div>
+</div>
+</div>
+
+</body>
+</html>
