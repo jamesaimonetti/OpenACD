@@ -561,7 +561,7 @@ parse_path(Path) ->
 					File = string:join(Moretail, "/"),
 					Dynamic = case application:get_env(cpx, webdir_dynamic) of
 						undefined ->
-							"www/dynamic";
+							"priv/www/dynamic";
 						{ok, WebDirDyn} ->
 							WebDirDyn
 					end,
