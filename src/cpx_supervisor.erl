@@ -473,7 +473,7 @@ load_specs(Super) ->
 			end,
 %			Startthese = case Super of
 %				management_sup ->
-%					{ok, Nodes} = case application:get_env(cpx, nodes) of
+%					{ok, Nodes} = case application:get_env(openacd, nodes) of
 %						undefined ->
 %							{ok, [node()]};
 %						Else ->

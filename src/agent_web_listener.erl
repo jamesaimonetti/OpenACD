@@ -64,10 +64,10 @@
 -ifndef(NOWEB).
 -include("web.hrl").
 -webconf([
-	{label, "AGENTWEBCONNECTION"},
-	{file, "agent_web_listener.html"},
-	{callback, web_api}
-]).
+		{label, "AGENTWEBCONNECTION"},
+		{file, "agent_web_listener.html"},
+		{callback, web_api}
+	]).
 -endif.
 
 -type(salt() :: string() | 'undefined').
@@ -75,9 +75,9 @@
 -type(web_connection() :: {string(), salt(), connection_handler()}).
 
 -record(state, {
-	connections:: any(), % ets table of the connections
-	mochipid :: pid() % pid of the mochiweb process.
-}).
+		connections:: any(), % ets table of the connections
+		mochipid :: pid() % pid of the mochiweb process.
+	}).
 
 -type(state() :: #state{}).
 -define(GEN_SERVER, true).
@@ -132,12 +132,18 @@ web_api(_Message, _Post) ->
 %%====================================================================
 
 init([Port]) ->
-	?DEBUG("Starting on port ~p", [Port]),
-	process_flag(trap_exit, true),
-	crypto:start(),
-	Table = ets:new(web_connections, [set, public, named_table]),
-	{ok, Mochi} = mochiweb_http:start([{loop, fun(Req) -> loop(Req, Table) end}, {name, ?MOCHI_NAME}, {port, Port}]),
-	{ok, #state{connections=Table, mochipid = Mochi}}.
+	case openacd:priv_dir() of
+		non_existing ->
+			?ERROR("Cannot find priv dir for application 'openacd', unable to start HTTP agent interface", []),
+			{error, non_existing};
+		PrivDir ->
+			?DEBUG("Starting on port ~p, priv dir is ", [Port, PrivDir]),
+			process_flag(trap_exit, true),
+			crypto:start(),
+			Table = ets:new(web_connections, [set, public, named_table]),
+			{ok, Mochi} = mochiweb_http:start([{loop, fun(Req) -> loop(Req, Table) end}, {name, ?MOCHI_NAME}, {port, Port}]),
+			{ok, #state{connections=Table, mochipid = Mochi}}
+	end.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -269,13 +275,13 @@ determine_language([]) ->
 determine_language(String) ->
 	[Head | Other] = util:string_split(String, ",", 2),
 	[Lang |_Junk] = util:string_split(Head, ";"),
-	case filelib:is_regular(string:concat(string:concat("priv/www/agent/application/nls/", Lang), "/labels.js")) of
+	case filelib:is_regular(filename:join([openacd:priv_dir(), "www/agent/application/nls", Lang, "labels.js"])) of
 		true ->
 			Lang;
 		false ->
 			% try the "super language" (eg en vs en-us) in case it's not in the list itself
 			[SuperLang | _SubLang] = util:string_split(Lang, "-"),
-			case filelib:is_regular(string:concat(string:concat("priv/www/agent/application/nls/", SuperLang), "/labels.js")) of
+			case filelib:is_regular(filename:join([openacd:priv_dir(), "www/agent/application/nls", SuperLang, "labels.js"])) of
 				true ->
 					SuperLang;
 				false ->
@@ -537,7 +543,7 @@ parse_path(Path) ->
 	%?DEBUG("Path:  ~s", [Path]),
 	case Path of
 		"/" ->
-			{file, {"index.html", "priv/www/agent/"}};
+			{file, {"index.html", openacd:priv_dir() ++ "/www/agent/"}};
 		"/poll" ->
 			{api, poll};
 		"/logout" ->
@@ -559,7 +565,7 @@ parse_path(Path) ->
 			case Tail of 
 				["dynamic" | Moretail] ->
 					File = string:join(Moretail, "/"),
-					Dynamic = case application:get_env(cpx, webdir_dynamic) of
+					Dynamic = case application:get_env(openacd, webdir_dynamic) of
 						undefined ->
 							"priv/www/dynamic";
 						{ok, WebDirDyn} ->
@@ -613,13 +619,15 @@ parse_path(Path) ->
 					{api, {supervisor, Supertail}};
 				_Allother ->
 					% is there an actual file to serve?
-					case {filelib:is_regular(string:concat("priv/www/agent", Path)), filelib:is_regular(string:concat("priv/www/contrib", Path))} of
+					?INFO("Path: ~p", [Path]),
+					TrimmedPath = string:strip(Path, left, $/),
+					case {filelib:is_regular(filename:join([openacd:priv_dir(), "www/agent", TrimmedPath])), filelib:is_regular(filename:join([openacd:priv_dir(), "www/contrib", TrimmedPath]))} of
 						{true, false} ->
-							{file, {string:strip(Path, left, $/), "priv/www/agent/"}};
+							{file, {TrimmedPath, openacd:priv_dir() ++ "/www/agent/"}};
 						{false, true} ->
-							{file, {string:strip(Path, left, $/), "priv/www/contrib/"}};
+							{file, {TrimmedPath, openacd:priv_dir() ++ "/www/contrib/"}};
 						{true, true} ->
-							{file, {string:strip(Path, left, $/), "priv/www/contrib/"}};
+							{file, {TrimmedPath, openacd:priv_dir() ++ "/www/contrib/"}};
 						{false, false} ->
 							{api, {undefined, Path}}
 					end

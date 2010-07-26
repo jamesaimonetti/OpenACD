@@ -746,7 +746,7 @@ api({queues, "queue", "new"}, ?COOKIE = Cookie, Post) ->
 %% media -> *
 %% =====
 api({medias, "poll"}, ?COOKIE, _Post) ->
-	{ok, Appnodes} = application:get_env(cpx, nodes),
+	{ok, Appnodes} = application:get_env(openacd, nodes),
 	Nodes = lists:filter(fun(N) -> lists:member(N, Appnodes) end, [node() | nodes()]),
 	F = fun(Node) ->
 		{Node, [

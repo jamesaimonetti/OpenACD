@@ -386,7 +386,7 @@ init([Agent, Options]) when is_record(Agent, agent) ->
 		true ->
 			Nodes = case proplists:get_value(nodes, Options) of
 				undefined ->
-					case application:get_env(cpx, nodes) of
+					case application:get_env(openacd, nodes) of
 						{ok, N} -> N;
 						undefined -> [node()]
 					end;

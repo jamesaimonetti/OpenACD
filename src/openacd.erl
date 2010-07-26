@@ -28,7 +28,7 @@
 %%
 
 %% @doc The application module.
--module(cpx).
+-module(openacd).
 -author("Micah").
 
 -behaviour(application).
@@ -81,18 +81,19 @@
 	in_progress/0,
 	print_raws/1,
 	find_cdr/1,
-	print_cdr/1
+	print_cdr/1,
+	priv_dir/0
 ]).
 
 -spec(start/2 :: (Type :: 'normal' | {'takeover', atom()} | {'failover', atom()}, StartArgs :: [any()]) -> {'ok', pid(), any()} | {'ok', pid()} | {'error', any()}).
 start(_Type, StartArgs) ->
 	io:format("Start args ~p~n", [StartArgs]),
-	io:format("All env: ~p~n", [application:get_all_env(cpx)]),
+	io:format("All env: ~p~n", [application:get_all_env(openacd)]),
 	crypto:start(),
 	%Nodes = lists:append([nodes(), [node()]]),
 	%mnesia:create_schema(Nodes),
 	%mnesia:start(),
-	case application:get_env(cpx, nodes) of
+	case application:get_env(openacd, nodes) of
 		{ok, Nodes} ->
 			lists:foreach(fun(Node) -> net_adm:ping(Node) end, Nodes),
 			case nodes() of
@@ -110,23 +111,23 @@ start(_Type, StartArgs) ->
 	mnesia:set_master_nodes(lists:umerge(Nodes, [node()])),
 	try cpx_supervisor:start_link(Nodes) of
 		{ok, Pid} ->
-			application:set_env(cpx, uptime, util:now()),
-			?NOTICE("Application cpx started sucessfully!", []),
+			application:set_env(openacd, uptime, util:now()),
+			?NOTICE("Application OpenACD started sucessfully!", []),
 			{ok, Pid}
 	catch
 		What:Why ->
-			?ERROR("Application cpx failed to start successfully! ~p:~p", [What, Why]),
+			?ERROR("Application OpenACD failed to start successfully! ~p:~p", [What, Why]),
 			{What, Why}
 	end.
 
 -spec(prep_stop/1 :: (State :: any()) -> any()).
 prep_stop(State) ->
-	?NOTICE("Application cpx stopping...", []),
+	?NOTICE("Application OpenACD stopping...", []),
 	State.
 
 -spec(stop/1 :: (State :: any()) -> 'ok').
 stop(_State) ->
-	application:unset_env(cpx, uptime),
+	application:unset_env(openacd, uptime),
 	ok.
 
 %% =====
@@ -522,20 +523,20 @@ uptime() ->
 -spec(uptime/1 :: (Fallback :: boolean()) -> non_neg_integer() | 'stopped').
 uptime(Fallback) ->
 	Apps = application:which_applications(),
-	Fun = fun({cpx, _, _}) -> true; (_) -> false end,
+	Fun = fun({openacd, _, _}) -> true; (_) -> false end,
 	Running = lists:any(Fun, Apps),
 	case Running of
 		false -> 
 			stopped;
 		true ->
-			case {application:get_env(cpx, uptime), Fallback} of
+			case {application:get_env(openacd, uptime), Fallback} of
 				{undefined, false} ->
-					io:format("The uptime is not available for this node.~nYou can call cpx:uptime(true) to set the uptime to now~n"),
+					io:format("The uptime is not available for this node.~nYou can call openacd:uptime(true) to set the uptime to now~n"),
 					0;
 				{undefined, true} ->
 					io:format("The uptime was not available, so resetting it as requested~n"),
 					Now = util:now(),
-					application:set_env(cpx, uptime, Now),
+					application:set_env(openacd, uptime, Now),
 					0;
 				{{ok, Time}, _} ->
 					Out = util:now() - Time,
@@ -733,6 +734,16 @@ find_cdr_test({mediaid, Id}, #cdr_rec{media = Media}) ->
 find_cdr_test(_, _) ->
 	false.
 
+priv_dir() ->
+	case code:priv_dir(openacd) of
+		{error, bad_name} ->
+			filename:join([filename:dirname(filename:dirname(code:where_is_file(?FILE))), "priv"]);
+		Dir ->
+			Dir
+	end.
+
+
+
 % to be added soon TODO
 %
 %can_answer/2 (Media, Agent) -> true | missing skills
@@ -743,7 +754,7 @@ find_cdr_test(_, _) ->
 % cdr:orphan_search
 % cdr:pending_states (agent/cdr), global/node
 % start_spec pretty print.
-% cpx:start_spec
+% openacd:start_spec
 
 -ifdef(TEST).
 

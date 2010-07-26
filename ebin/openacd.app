@@ -1,4 +1,4 @@
-{application, cpx, [
+{application, openacd, [
 	{description, "Call queuing and routing system"},
 	{vsn, "0.9.5"},
 	{modules, [
@@ -19,7 +19,7 @@
 		cdr_dets,
 		cdr_odbc,
 		cook,
-		cpx,
+		openacd,
 		cpx_middle_supervisor,
 		cpx_monitor,
 		cpx_monitor_grapher,
@@ -80,7 +80,7 @@
 		queue_manager,
 		routing_sup
 	]},
-	{mod, {cpx, []}},
+	{mod, {openacd, []}},
 	{env, []},
 	{applications, [kernel, stdlib, mnesia, crypto]}, %, mochiweb, gen_smtp]},
 	{start_phases, []}
