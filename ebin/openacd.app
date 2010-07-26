@@ -20,6 +20,7 @@
 		cdr_odbc,
 		cook,
 		openacd,
+		openacd_cli,
 		cpx_middle_supervisor,
 		cpx_monitor,
 		cpx_monitor_grapher,
