@@ -52,9 +52,29 @@ stop(running, _) ->
 	erlctl:server_exit(),
 	{ok, "Stopped"}.
 
+restart(not_running, Opt) ->
+	start(not_running, Opt);
+restart(running, Opt) ->
+	stop(running, Opt),
+	{restart, [], "Restarting..."};
+restart(started, Opt) ->
+	start(started, Opt). % in context of application node
+
 status(not_running, _) ->
 	{ok, "Not Running"};
 status(running, _) ->
 	erlctl:format("Running "),
 	openacd:uptime(),
+	ok.
+
+queue_status(not_running, _) ->
+	{ok, "Not Running"};
+queue_status(running, _) ->
+	openacd:get_queue_status(),
+	ok.
+
+agent_status(not_running, _) ->
+	{ok, "Not Running"};
+agent_status(running, _) ->
+	openacd:get_agent_status(),
 	ok.
